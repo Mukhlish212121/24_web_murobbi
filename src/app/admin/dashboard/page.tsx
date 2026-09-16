@@ -1,29 +1,54 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { useState, useEffect } from "react";
+import { Users } from "lucide-react";
+// 1. Path import diperbaiki agar menunjuk ke folder kelola-user
+import { getDaftarUser } from "../kelola-user/actions"; 
 
-export default function KelolaUserPage() {
+export default function RingkasanAkunPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await getDaftarUser();
+        if (res.users) {
+          setTotalUsers(res.users.length);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data user:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kelola Akun Pengurus</h1>
-      <p className="text-gray-500 mb-6">Buat akun untuk pengurus pondok baru di sini.</p>
-
-      <div className="bg-white dark:pondok-900 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-pondok-900">
-        <form className="space-y-4">
-          <Input label="Nama Lengkap" placeholder="Ust. Fulan" required />
-          <Input label="Email Pengurus" type="email" placeholder="fulan@pondok.com" required />
-          <Input label="Password Sementara" type="text" placeholder="Minimal 6 karakter" required />
-          
-          <div className="pt-2">
-            <Button type="button">Buat Akun Pengurus</Button>
-          </div>
-          
-          <p className="text-xs text-gray-500 mt-4 border-t border-gray-100 dark:border-pondok-800 pt-4">
-            * Catatan Developer: Untuk mengaktifkan fungsi ini secara penuh, Anda perlu menghubungkan form ini ke fungsi <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">supabase.auth.admin.createUser</code> menggunakan Next.js Server Actions dan SUPABASE_SERVICE_ROLE_KEY di .env Anda.
-          </p>
-        </form>
+    <div className="max-w-5xl space-y-6">
+      
+      {/* Header Halaman */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ringkasan Sistem</h1>
+        <p className="text-gray-500 text-sm mt-1">Informasi jumlah pengguna yang terdaftar di sistem Murobbi.</p>
       </div>
+
+      {/* Kartu Statistik Tunggal */}
+      {/* 2. Class warna diperbarui mengikuti saran Tailwind */}
+      <div className="bg-white dark:bg-pondok-950 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex items-center gap-5 max-w-sm">
+        <div className="p-4 bg-pondok-50 dark:bg-pondok-900/30 text-pondok-600 dark:text-pondok-400 rounded-xl">
+          <Users size={32} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Akun Terdaftar</p>
+          <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {isLoading ? "..." : totalUsers}
+          </h3>
+        </div>
+      </div>
+
     </div>
   );
 }

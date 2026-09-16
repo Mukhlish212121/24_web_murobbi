@@ -131,6 +131,16 @@ export default function KelolaUserPage() {
             <form onSubmit={handleTambah} className="p-5 space-y-4">
               <Input name="fullName" label="Nama Lengkap" placeholder="Ust. Fulan" required />
               <Input name="email" label="Email" type="email" placeholder="fulan@pondok.com" required />
+              
+              {/* DROPDOWN ROLE UNTUK TAMBAH USER */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hak Akses</label>
+                <select name="role" required className="w-full px-4 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500">
+                  <option value="pengurus">Pengurus</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
               <Input name="password" label="Password" type="password" placeholder="Minimal 6 karakter" required minLength={6} />
               
               {pesan.teks && (
@@ -160,6 +170,15 @@ export default function KelolaUserPage() {
               <input type="hidden" name="id" value={selectedUser.id} />
               <Input name="fullName" label="Nama Lengkap" defaultValue={selectedUser.full_name} required />
               <Input name="email" label="Email" type="email" defaultValue={selectedUser.email} required />
+              
+              {/* DROPDOWN ROLE UNTUK EDIT USER */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hak Akses</label>
+                <select name="role" defaultValue={selectedUser.role} required className="w-full px-4 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500">
+                  <option value="pengurus">Pengurus</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
               
               <div className="bg-gray-50 dark:bg-[#02180b] p-3 rounded-lg border border-gray-100 dark:border-pondok-900">
                 <Input name="password" label="Ganti Password Baru" type="text" placeholder="Kosongkan jika tidak ingin ganti password" minLength={6} />

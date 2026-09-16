@@ -17,7 +17,7 @@ export default function PengurusNavbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-white dark:bg-[#052e16] border-b border-gray-200 dark:border-pondok-900 shadow-sm">
+    <header className="sticky top-0 z-30 w-full bg-white dark:bg-pondok-950 border-b border-gray-200 dark:border-pondok-900 shadow-sm">
       <div className="flex items-center justify-between px-6 py-3">
         {/* Kiri: Logo Pondok */}
         <div className="flex items-center gap-2 text-pondok-600 dark:text-pondok-400 font-bold text-xl md:hidden">

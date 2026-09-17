@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Sistem Manajemen Murobbi",
   description: "Web manajemen santri dan pengurus pondok",
+  icons: {
+    icon: "/favicon.jpg", // Mengarahkan favicon ke logo Anda
+  },
 };
 
 export default function RootLayout({

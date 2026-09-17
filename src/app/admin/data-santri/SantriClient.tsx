@@ -115,84 +115,116 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
         <Button onClick={openAddModal}>+ Tambah Santri</Button>
       </div>
 
-      <div className="bg-white dark:bg-pondok-950 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex flex-col md:flex-row md:items-end justify-between gap-5">
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+      {/* KOTAK FILTER DENGAN LAYOUT RESPONSIVE & PONDOK THEME */}
+      <div className="bg-white dark:bg-pondok-950 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
+          
+          <div className="flex flex-col gap-1.5 flex-1">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenis Kelamin</label>
-            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-36 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
               <option value="Semua">Semua</option>
               <option value="RG">RG (Laki-laki)</option>
               <option value="UG">UG (Perempuan)</option>
             </select>
           </div>
-          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+
+          <div className="flex flex-col gap-1.5 flex-1">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenjang</label>
-            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-36 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
               <option value="Semua">Semua Jenjang</option>
               <option value="SMA">SMA</option>
               <option value="MTs">MTs</option>
             </select>
           </div>
-          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+
+          <div className="flex flex-col gap-1.5 flex-1">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</label>
-            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full sm:w-36 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
+            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
               <option value="Semua">Semua Kelas</option>
               {filterKategori !== "Semua" && filterJenjang !== "Semua" && KELAS_MAP[filterKategori as "RG"|"UG"][filterJenjang as "SMA"|"MTs"].map(kls => (<option key={kls} value={kls}>{kls}</option>))}
             </select>
           </div>
-          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+
+          <div className="flex flex-col gap-1.5 flex-1">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status Asrama</label>
-            <select value={filterStatusAsrama} onChange={(e) => setFilterStatusAsrama(e.target.value)} className="w-full sm:w-44 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+            <select value={filterStatusAsrama} onChange={(e) => setFilterStatusAsrama(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
               <option value="Semua">Semua Status</option>
               <option value="Belum">Belum Masuk Asrama</option>
               <option value="Sudah">Sudah Ada Asrama</option>
             </select>
           </div>
+
         </div>
-        <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center min-w-35 shadow-sm">
+
+        <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center shadow-sm whitespace-nowrap">
           <span className="text-sm font-bold text-pondok-700 dark:text-pondok-300">Total: {filteredSantri.length} Santri</span>
         </div>
       </div>
 
+      {/* TABEL SANTRI */}
       <div className="bg-white dark:bg-pondok-950 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 w-full overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
-            <tr className="bg-gray-50 dark:bg-[#02180b] border-b border-gray-100 dark:border-pondok-900 text-gray-600 dark:text-gray-300">
+            <tr className="bg-gray-50 dark:bg-[#02180b] border-b border-gray-100 dark:border-pondok-900 text-gray-600 dark:text-gray-400">
               <th className="p-4 font-medium w-16">No</th>
               <th className="p-4 font-medium">NIS</th>
               <th className="p-4 font-medium">Nama Santri</th>
-              <th className="p-4 font-medium">Jenis Kelamin</th>
-              <th className="p-4 font-medium">Kelas</th>
+              <th className="p-4 font-medium text-center">Jenis Kelamin</th>
+              <th className="p-4 font-medium text-center">Kelas</th>
               <th className="p-4 font-medium">Asrama (Kamar)</th>
               <th className="p-4 font-medium text-center">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {filteredSantri.length === 0 ? (
-              <tr><td colSpan={7} className="p-4 text-center text-gray-500">Tidak ada santri yang sesuai.</td></tr>
+              <tr><td colSpan={7} className="p-8 text-center text-gray-500 dark:text-gray-400">Tidak ada santri yang sesuai dengan filter.</td></tr>
             ) : (
               filteredSantri.map((santri, index) => (
-                <tr key={santri.id} className="border-b border-gray-50 dark:border-pondok-900/50 hover:bg-gray-50 dark:hover:bg-pondok-900/20">
-                  <td className="p-4 text-gray-800 dark:text-gray-200">{index + 1}</td>
-                  <td className="p-4 text-gray-800 dark:text-gray-200 font-mono">{santri.nis}</td>
-                  <td className="p-4 text-gray-800 dark:text-gray-200 font-medium">{santri.nama_santri}</td>
-                  <td className="p-4"><span className={`px-2 py-1 text-xs rounded-full ${santri.kategori_asrama === 'RG' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>{santri.kategori_asrama === 'RG' ? 'RG' : 'UG'}</span></td>
-                  <td className="p-4 text-gray-800 dark:text-gray-200 font-bold">{santri.kelas}</td>
+                <tr key={santri.id} className="border-b border-gray-50 dark:border-pondok-900/50 hover:bg-gray-50 dark:hover:bg-pondok-900/20 transition-colors">
+                  <td className="p-4 text-gray-800 dark:text-gray-300">{index + 1}</td>
+                  <td className="p-4 text-gray-800 dark:text-gray-300 font-mono text-sm">{santri.nis}</td>
+                  <td className="p-4 text-gray-900 dark:text-gray-100 font-semibold">{santri.nama_santri}</td>
+                  
+                  <td className="p-4 text-center">
+                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-md tracking-wider ${santri.kategori_asrama === 'RG' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50' : 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 border border-pink-100 dark:border-pink-800/50'}`}>
+                      {santri.kategori_asrama}
+                    </span>
+                  </td>
+                  
+                  <td className="p-4 text-center text-gray-800 dark:text-gray-200 font-bold">{santri.kelas}</td>
+                  
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       {santri.nama_asrama ? (
                         <span className="text-gray-800 dark:text-gray-200 font-medium text-sm">{santri.nama_asrama}</span>
                       ) : (
-                        <span className="text-red-500 text-xs font-semibold italic bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md">Belum Asrama</span>
+                        <span className="text-red-700 text-xs font-semibold bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 px-2 py-1 rounded-md">Belum Asrama</span>
                       )}
-                      <button onClick={() => openAssignModal(santri)} className="text-xs text-pondok-600 hover:text-pondok-800 dark:text-pondok-400 dark:hover:text-pondok-300 font-semibold underline decoration-dotted underline-offset-2 transition-colors">
+                      
+                      <button 
+                        onClick={() => openAssignModal(santri)} 
+                        className="flex items-center justify-center px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-pondok-50 dark:bg-pondok-900/40 text-pondok-700 dark:text-pondok-300 rounded-full border border-pondok-100 dark:border-pondok-800 hover:bg-pondok-100 dark:hover:bg-pondok-800 hover:text-pondok-800 dark:hover:text-white transition-all"
+                      >
                         {santri.nama_asrama ? "Ubah" : "+ Pilih"}
                       </button>
                     </div>
                   </td>
-                  <td className="p-4 flex justify-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => openEditModal(santri)}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => openDeleteModal(santri.id, santri.nama_santri)}>Hapus</Button>
+                  
+                  <td className="p-4">
+                    <div className="flex justify-center items-center gap-2">
+                      <button 
+                        onClick={() => openEditModal(santri)} 
+                        className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-800/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => openDeleteModal(santri.id, santri.nama_santri)} 
+                        className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-800/30 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                      >
+                        Hapus
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -200,6 +232,8 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
           </tbody>
         </table>
       </div>
+
+      
 
       {/* Modal Atur Asrama */}
       {isAssignOpen && selectedSantri && (

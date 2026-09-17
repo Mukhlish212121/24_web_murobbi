@@ -13,19 +13,20 @@ const KELAS_MAP = {
   UG: { SMA: ["10B", "11B", "12B"], MTs: ["7C", "7D", "8C", "8D", "9C", "9D"] }
 };
 
-// Menerima data langsung dari Server Component
 export default function SantriClient({ initialSantri, initialAsrama }: { initialSantri: Santri[], initialAsrama: Asrama[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [notif, setNotif] = useState({ tipe: "", teks: "", tampil: false });
   
+  // State Filter
   const [filterKategori, setFilterKategori] = useState("Semua");
   const [filterJenjang, setFilterJenjang] = useState("Semua");
   const [filterKelas, setFilterKelas] = useState("Semua");
   const [filterStatusAsrama, setFilterStatusAsrama] = useState("Semua");
+  const [filterAsrama, setFilterAsrama] = useState("Semua"); 
 
+  // State Form & Modals
   const [formKategori, setFormKategori] = useState<"RG" | "UG">("RG");
   const [formJenjang, setFormJenjang] = useState<"SMA" | "MTs">("MTs");
-
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false); 
@@ -39,7 +40,6 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
     setTimeout(() => setNotif((prev) => ({ ...prev, tampil: false })), 3000);
   };
 
-  // Filter menggunakan data initialSantri yang dikirim dari server
   const filteredSantri = useMemo(() => {
     return initialSantri.filter(santri => {
       const matchKategori = filterKategori === "Semua" || santri.kategori_asrama === filterKategori;
@@ -49,44 +49,29 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
         filterStatusAsrama === "Semua" || 
         (filterStatusAsrama === "Belum" && !santri.asrama_id) || 
         (filterStatusAsrama === "Sudah" && santri.asrama_id);
+      const matchAsrama = filterAsrama === "Semua" || santri.asrama_id === filterAsrama;
 
-      return matchKategori && matchJenjang && matchKelas && matchStatusAsrama;
+      return matchKategori && matchJenjang && matchKelas && matchStatusAsrama && matchAsrama;
     });
-  }, [initialSantri, filterKategori, filterJenjang, filterKelas, filterStatusAsrama]);
+  }, [initialSantri, filterKategori, filterJenjang, filterKelas, filterStatusAsrama, filterAsrama]);
 
   const openAddModal = () => { setFormKategori("RG"); setFormJenjang("MTs"); setIsAddOpen(true); };
   const openEditModal = (santri: Santri) => { setFormKategori((santri.kategori_asrama as "RG" | "UG") || "RG"); setFormJenjang((santri.jenjang as "SMA" | "MTs") || "MTs"); setSelectedSantri(santri); setIsEditOpen(true); };
   const openDeleteModal = (id: string, nama: string) => { setSantriToDelete({ id, nama }); setIsDeleteOpen(true); };
   const openAssignModal = (santri: Santri) => { setSelectedSantri(santri); setIsAssignOpen(true); };
 
-  // Next.js akan otomatis memperbarui (re-render) initialSantri saat action memanggil revalidatePath
-  const handleTambah = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleAction = async (actionFn: Function, formData: FormData, successMsg: string, setModalOpen: Function) => {
     setIsLoading(true);
-    const result = await tambahSantri(new FormData(e.currentTarget));
+    const result = await actionFn(formData);
     if (result.error) tampilkanNotif("error", result.error);
-    else { setIsAddOpen(false); tampilkanNotif("sukses", "Data santri berhasil ditambahkan!"); }
+    else { setModalOpen(false); tampilkanNotif("sukses", successMsg); }
     setIsLoading(false);
   };
 
-  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const result = await editSantri(new FormData(e.currentTarget));
-    if (result.error) tampilkanNotif("error", result.error);
-    else { setIsEditOpen(false); tampilkanNotif("sukses", "Data santri berhasil diperbarui!"); }
-    setIsLoading(false);
-  };
-
-  const handleSetAsrama = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const result = await setAsramaSantri(new FormData(e.currentTarget));
-    if (result.error) tampilkanNotif("error", result.error);
-    else { setIsAssignOpen(false); tampilkanNotif("sukses", "Penempatan asrama diperbarui!"); }
-    setIsLoading(false);
-  };
-
+  const handleTambah = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); handleAction(tambahSantri, new FormData(e.currentTarget), "Data berhasil ditambahkan!", setIsAddOpen); };
+  const handleEdit = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); handleAction(editSantri, new FormData(e.currentTarget), "Data berhasil diperbarui!", setIsEditOpen); };
+  const handleSetAsrama = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); handleAction(setAsramaSantri, new FormData(e.currentTarget), "Penempatan asrama diperbarui!", setIsAssignOpen); };
+  
   const executeDelete = async () => {
     if (!santriToDelete) return;
     setIsLoading(true);
@@ -98,6 +83,7 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
 
   return (
     <div className="space-y-6 max-w-7xl w-full relative">
+      {/* Toast Notifikasi */}
       {notif.tampil && (
         <div className={`fixed top-5 right-5 z-100 px-5 py-3 rounded-xl shadow-lg border transition-all duration-300 flex items-center gap-3 ${
           notif.tipe === "sukses" ? "bg-green-50 border-green-200 text-green-700 dark:bg-pondok-950 dark:border-green-800 dark:text-green-400" : "bg-red-50 border-red-200 text-red-700 dark:bg-pondok-950 dark:border-red-900 dark:text-red-400"
@@ -107,6 +93,7 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
         </div>
       )}
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Data Santri</h1>
@@ -115,53 +102,61 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
         <Button onClick={openAddModal}>+ Tambah Santri</Button>
       </div>
 
-      {/* KOTAK FILTER DENGAN LAYOUT RESPONSIVE & PONDOK THEME */}
+      {/* Filter Responsif 5 Kolom */}
+      {/* Filter Responsif 5 Kolom */}
       <div className="bg-white dark:bg-pondok-950 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
+        <div className="flex flex-wrap md:flex-nowrap items-stretch md:items-center gap-4 w-full">
           
-          <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex flex-col gap-1.5 flex-1 min-w-35">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenis Kelamin</label>
-            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
+            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
               <option value="Semua">Semua</option>
               <option value="RG">RG (Laki-laki)</option>
               <option value="UG">UG (Perempuan)</option>
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex flex-col gap-1.5 flex-1 min-w-35">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenjang</label>
-            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
+            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
               <option value="Semua">Semua Jenjang</option>
               <option value="SMA">SMA</option>
               <option value="MTs">MTs</option>
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex flex-col gap-1.5 flex-1 min-w-30">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</label>
-            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
+            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
               <option value="Semua">Semua Kelas</option>
               {filterKategori !== "Semua" && filterJenjang !== "Semua" && KELAS_MAP[filterKategori as "RG"|"UG"][filterJenjang as "SMA"|"MTs"].map(kls => (<option key={kls} value={kls}>{kls}</option>))}
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex flex-col gap-1.5 flex-1 min-w-35">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status Asrama</label>
-            <select value={filterStatusAsrama} onChange={(e) => setFilterStatusAsrama(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
+            <select value={filterStatusAsrama} onChange={(e) => { setFilterStatusAsrama(e.target.value); if(e.target.value === "Belum") setFilterAsrama("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
               <option value="Semua">Semua Status</option>
               <option value="Belum">Belum Masuk Asrama</option>
               <option value="Sudah">Sudah Ada Asrama</option>
             </select>
           </div>
 
+          <div className="flex flex-col gap-1.5 flex-1 min-w-40">
+            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pilih Asrama</label>
+            <select value={filterAsrama} onChange={(e) => { setFilterAsrama(e.target.value); if(e.target.value !== "Semua") setFilterStatusAsrama("Sudah"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50" disabled={filterStatusAsrama === "Belum"}>
+              <option value="Semua">Semua Asrama</option>
+              {initialAsrama.map(asrama => (<option key={asrama.id} value={asrama.id}>{asrama.nama_asrama}</option>))}
+            </select>
+          </div>
         </div>
 
-        <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center shadow-sm whitespace-nowrap">
+        <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center shadow-sm whitespace-nowrap mt-4 lg:mt-0">
           <span className="text-sm font-bold text-pondok-700 dark:text-pondok-300">Total: {filteredSantri.length} Santri</span>
         </div>
       </div>
 
-      {/* TABEL SANTRI */}
+      {/* Tabel Data Santri */}
       <div className="bg-white dark:bg-pondok-950 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 w-full overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
@@ -200,11 +195,7 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
                       ) : (
                         <span className="text-red-700 text-xs font-semibold bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 px-2 py-1 rounded-md">Belum Asrama</span>
                       )}
-                      
-                      <button 
-                        onClick={() => openAssignModal(santri)} 
-                        className="flex items-center justify-center px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-pondok-50 dark:bg-pondok-900/40 text-pondok-700 dark:text-pondok-300 rounded-full border border-pondok-100 dark:border-pondok-800 hover:bg-pondok-100 dark:hover:bg-pondok-800 hover:text-pondok-800 dark:hover:text-white transition-all"
-                      >
+                      <button onClick={() => openAssignModal(santri)} className="flex items-center justify-center px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-pondok-50 dark:bg-pondok-900/40 text-pondok-700 dark:text-pondok-300 rounded-full border border-pondok-100 dark:border-pondok-800 hover:bg-pondok-100 dark:hover:bg-pondok-800 hover:text-pondok-800 dark:hover:text-white transition-all">
                         {santri.nama_asrama ? "Ubah" : "+ Pilih"}
                       </button>
                     </div>
@@ -212,18 +203,8 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
                   
                   <td className="p-4">
                     <div className="flex justify-center items-center gap-2">
-                      <button 
-                        onClick={() => openEditModal(santri)} 
-                        className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-800/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => openDeleteModal(santri.id, santri.nama_santri)} 
-                        className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-800/30 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                      >
-                        Hapus
-                      </button>
+                      <button onClick={() => openEditModal(santri)} className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-800/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">Edit</button>
+                      <button onClick={() => openDeleteModal(santri.id, santri.nama_santri)} className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-800/30 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">Hapus</button>
                     </div>
                   </td>
                 </tr>
@@ -232,8 +213,6 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
           </tbody>
         </table>
       </div>
-
-      
 
       {/* Modal Atur Asrama */}
       {isAssignOpen && selectedSantri && (
@@ -280,15 +259,13 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenis Kelamin</label>
                   <select name="kategoriAsrama" value={formKategori} onChange={(e) => setFormKategori(e.target.value as "RG"|"UG")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
-                    <option value="RG">RG (Laki-laki)</option>
-                    <option value="UG">UG (Perempuan)</option>
+                    <option value="RG">RG (Laki-laki)</option><option value="UG">UG (Perempuan)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenjang</label>
                   <select name="jenjang" value={formJenjang} onChange={(e) => setFormJenjang(e.target.value as "SMA"|"MTs")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
-                    <option value="SMA">SMA</option>
-                    <option value="MTs">MTs</option>
+                    <option value="SMA">SMA</option><option value="MTs">MTs</option>
                   </select>
                 </div>
               </div>
@@ -323,15 +300,13 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenis Kelamin</label>
                   <select name="kategoriAsrama" value={formKategori} onChange={(e) => setFormKategori(e.target.value as "RG"|"UG")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
-                    <option value="RG">RG (Laki-laki)</option>
-                    <option value="UG">UG (Perempuan)</option>
+                    <option value="RG">RG (Laki-laki)</option><option value="UG">UG (Perempuan)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenjang</label>
                   <select name="jenjang" value={formJenjang} onChange={(e) => setFormJenjang(e.target.value as "SMA"|"MTs")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
-                    <option value="SMA">SMA</option>
-                    <option value="MTs">MTs</option>
+                    <option value="SMA">SMA</option><option value="MTs">MTs</option>
                   </select>
                 </div>
               </div>
@@ -359,7 +334,7 @@ export default function SantriClient({ initialSantri, initialAsrama }: { initial
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </div>
               <h3 className="font-bold text-xl text-gray-900 dark:text-white">Konfirmasi Hapus</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Apakah Anda yakin ingin menghapus data santri <span className="font-bold text-gray-900 dark:text-white">"{santriToDelete.nama}"</span>?</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Yakin menghapus data <span className="font-bold text-gray-900 dark:text-white">"{santriToDelete.nama}"</span>?</p>
             </div>
             <div className="bg-gray-50 dark:bg-[#02180b] px-6 py-4 flex justify-center gap-3 border-t border-gray-100 dark:border-pondok-900">
               <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Batal</Button>

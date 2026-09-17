@@ -17,7 +17,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Kelola Asrama", href: "/admin/asrama", icon: Building },
     { name: "Data Santri", href: "/admin/data-santri", icon: Users },
-    { name: "Rekap Asrama", href: "/admin/rekap-asrama", icon: ClipboardList },
     { name: "Kelola User", href: "/admin/kelola-user", icon: UserCog },
   ];
 

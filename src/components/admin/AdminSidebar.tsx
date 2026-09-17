@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UserCog, X } from "lucide-react";
+import { LayoutDashboard, UserCog, X, Users, Building } from "lucide-react";
 
 // Menambahkan properti agar Sidebar tahu kapan harus buka/tutup
 interface AdminSidebarProps {
@@ -15,6 +15,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const menuItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { name: "Kelola Asrama", href: "/admin/asrama", icon: Building },
+    { name: "Data Santri", href: "/admin/data-santri", icon: Users },
     { name: "Kelola User", href: "/admin/kelola-user", icon: UserCog },
   ];
 

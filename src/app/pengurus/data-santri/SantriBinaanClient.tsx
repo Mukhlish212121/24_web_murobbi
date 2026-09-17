@@ -40,48 +40,11 @@ export default function SantriBinaanClient({ initialSantri }: { initialSantri: S
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Santri Binaan</h1>
           <p className="text-sm text-gray-500">
-            Daftar santri yang ditempatkan di <span className="font-bold text-pondok-600 dark:text-pondok-400">{namaAsramaPengurus}</span>.
+            Daftar santri yang ditempatkan di <span className="font-bold text-pondok-600 dark:text-pondok-400">{namaAsramaPengurus}</span>, dengan total <span className="font-bold text-pondok-600 dark:text-pondok-400">{filteredSantri.length} santri</span> .
           </p>
         </div>
       </div>
-
-      {/* KOTAK FILTER */}
-      <div className="bg-white dark:bg-pondok-950 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
-          
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenis Kelamin</label>
-            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
-              <option value="Semua">Semua</option>
-              <option value="RG">RG (Laki-laki)</option>
-              <option value="UG">UG (Perempuan)</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenjang</label>
-            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer transition-all">
-              <option value="Semua">Semua Jenjang</option>
-              <option value="SMA">SMA</option>
-              <option value="MTs">MTs</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</label>
-            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-800 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
-              <option value="Semua">Semua Kelas</option>
-              {filterKategori !== "Semua" && filterJenjang !== "Semua" && KELAS_MAP[filterKategori as "RG"|"UG"][filterJenjang as "SMA"|"MTs"].map(kls => (<option key={kls} value={kls}>{kls}</option>))}
-            </select>
-          </div>
-
-        </div>
-
-        <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center shadow-sm whitespace-nowrap">
-          <span className="text-sm font-bold text-pondok-700 dark:text-pondok-300">Total: {filteredSantri.length} Santri</span>
-        </div>
-      </div>
-
+      
       {/* TABEL SANTRI BINAAN (READ ONLY) */}
       <div className="bg-white dark:bg-pondok-950 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 w-full overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">

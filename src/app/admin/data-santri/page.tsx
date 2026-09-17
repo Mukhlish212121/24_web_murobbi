@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { getDaftarSantri, tambahSantri, editSantri, hapusSantri } from "./actions";
+import { getDaftarSantri, getDaftarAsrama, tambahSantri, editSantri, hapusSantri, setAsramaSantri } from "./actions";
 
-type Santri = { id: string; nis: string; nama_santri: string; kategori_asrama: string; jenjang: string; kelas: string };
+type Santri = { id: string; nis: string; nama_santri: string; kategori_asrama: string; jenjang: string; kelas: string; asrama_id?: string; nama_asrama?: string };
+type Asrama = { id: string; nama_asrama: string };
 
 const KELAS_MAP = {
   RG: {
@@ -20,37 +21,40 @@ const KELAS_MAP = {
 
 export default function DataSantriPage() {
   const [santriList, setSantriList] = useState<Santri[]>([]);
+  const [asramaList, setAsramaList] = useState<Asrama[]>([]);
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   
-  // State untuk Notifikasi Melayang (Toast)
   const [notif, setNotif] = useState({ tipe: "", teks: "", tampil: false });
   
   // State Filter
   const [filterKategori, setFilterKategori] = useState("Semua");
   const [filterJenjang, setFilterJenjang] = useState("Semua");
   const [filterKelas, setFilterKelas] = useState("Semua");
+  const [filterStatusAsrama, setFilterStatusAsrama] = useState("Semua");
 
-  // State Form Modal Tambah/Edit
   const [formKategori, setFormKategori] = useState<"RG" | "UG">("RG");
   const [formJenjang, setFormJenjang] = useState<"SMA" | "MTs">("MTs");
 
-  // State Pembuka Modal
+  // State Modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false); // Modal Hapus
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false); 
+  const [isAssignOpen, setIsAssignOpen] = useState(false); 
   
   const [selectedSantri, setSelectedSantri] = useState<Santri | null>(null);
   const [santriToDelete, setSantriToDelete] = useState<{ id: string; nama: string } | null>(null);
 
-  const fetchSantri = async () => {
-    setIsFetching(true); // Mulai loading
-    const res = await getDaftarSantri();
-    if (res.data) setSantriList(res.data);
-    setIsFetching(false); // Selesai loading
+  const fetchData = async () => {
+    setIsFetching(true);
+    const [resSantri, resAsrama] = await Promise.all([getDaftarSantri(), getDaftarAsrama()]);
+    if (resSantri.data) setSantriList(resSantri.data);
+    if (resAsrama.data) setAsramaList(resAsrama.data);
+    setIsFetching(false);
   };
 
-  useEffect(() => { fetchSantri(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const tampilkanNotif = (tipe: "sukses" | "error", teks: string) => {
     setNotif({ tipe, teks, tampil: true });
@@ -62,9 +66,15 @@ export default function DataSantriPage() {
       const matchKategori = filterKategori === "Semua" || santri.kategori_asrama === filterKategori;
       const matchJenjang = filterJenjang === "Semua" || santri.jenjang === filterJenjang;
       const matchKelas = filterKelas === "Semua" || santri.kelas === filterKelas;
-      return matchKategori && matchJenjang && matchKelas;
+      
+      const matchStatusAsrama = 
+        filterStatusAsrama === "Semua" || 
+        (filterStatusAsrama === "Belum" && !santri.asrama_id) || 
+        (filterStatusAsrama === "Sudah" && santri.asrama_id);
+
+      return matchKategori && matchJenjang && matchKelas && matchStatusAsrama;
     });
-  }, [santriList, filterKategori, filterJenjang, filterKelas]);
+  }, [santriList, filterKategori, filterJenjang, filterKelas, filterStatusAsrama]);
 
   const openAddModal = () => {
     setFormKategori("RG");
@@ -79,10 +89,14 @@ export default function DataSantriPage() {
     setIsEditOpen(true);
   };
 
-  // Fungsi Pemicu Modal Hapus
   const openDeleteModal = (id: string, nama: string) => {
     setSantriToDelete({ id, nama });
     setIsDeleteOpen(true);
+  };
+
+  const openAssignModal = (santri: Santri) => {
+    setSelectedSantri(santri);
+    setIsAssignOpen(true);
   };
 
   const handleTambah = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -90,13 +104,8 @@ export default function DataSantriPage() {
     setIsLoading(true);
     const result = await tambahSantri(new FormData(e.currentTarget));
     
-    if (result.error) {
-      tampilkanNotif("error", result.error);
-    } else {
-      setIsAddOpen(false);
-      fetchSantri();
-      tampilkanNotif("sukses", "Data santri berhasil ditambahkan!");
-    }
+    if (result.error) tampilkanNotif("error", result.error);
+    else { setIsAddOpen(false); fetchData(); tampilkanNotif("sukses", "Data santri berhasil ditambahkan!"); }
     setIsLoading(false);
   };
 
@@ -105,28 +114,28 @@ export default function DataSantriPage() {
     setIsLoading(true);
     const result = await editSantri(new FormData(e.currentTarget));
     
-    if (result.error) {
-      tampilkanNotif("error", result.error);
-    } else {
-      setIsEditOpen(false);
-      fetchSantri();
-      tampilkanNotif("sukses", "Data santri berhasil diperbarui!");
-    }
+    if (result.error) tampilkanNotif("error", result.error);
+    else { setIsEditOpen(false); fetchData(); tampilkanNotif("sukses", "Data santri berhasil diperbarui!"); }
     setIsLoading(false);
   };
 
-  // Fungsi Eksekusi Hapus dari dalam Modal
+  const handleSetAsrama = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const result = await setAsramaSantri(new FormData(e.currentTarget));
+    
+    if (result.error) tampilkanNotif("error", result.error);
+    else { setIsAssignOpen(false); fetchData(); tampilkanNotif("sukses", "Penempatan asrama diperbarui!"); }
+    setIsLoading(false);
+  };
+
   const executeDelete = async () => {
     if (!santriToDelete) return;
     setIsLoading(true);
-    
     const result = await hapusSantri(santriToDelete.id);
-    if (result.error) {
-      tampilkanNotif("error", "Gagal menghapus: " + result.error);
-    } else {
-      fetchSantri();
-      tampilkanNotif("sukses", `Santri ${santriToDelete.nama} berhasil dihapus!`);
-    }
+    
+    if (result.error) tampilkanNotif("error", "Gagal menghapus: " + result.error);
+    else { fetchData(); tampilkanNotif("sukses", `Santri ${santriToDelete.nama} berhasil dihapus!`); }
     
     setIsDeleteOpen(false);
     setSantriToDelete(null);
@@ -141,7 +150,7 @@ export default function DataSantriPage() {
         <div className={`fixed top-5 right-5 z-100 px-5 py-3 rounded-xl shadow-lg border transition-all duration-300 flex items-center gap-3 ${
           notif.tipe === "sukses" 
             ? "bg-green-50 border-green-200 text-green-700 dark:bg-pondok-950 dark:border-green-800 dark:text-green-400" 
-            : "bg-red-50 border-red-200 text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-400"
+            : "bg-red-50 border-red-200 text-red-700 dark:bg-pondok-950 dark:border-red-900 dark:text-red-400"
         }`}>
           <span className="font-medium text-sm">{notif.teks}</span>
           <button onClick={() => setNotif(prev => ({...prev, tampil: false}))} className="text-xl font-bold opacity-70 hover:opacity-100">&times;</button>
@@ -152,7 +161,7 @@ export default function DataSantriPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Data Santri</h1>
-          <p className="text-sm text-gray-500">Kelola master data santri berdasarkan jenis kelamin dan kelas.</p>
+          <p className="text-sm text-gray-500">Kelola data santri, kelas, dan penempatan asrama.</p>
         </div>
         <Button onClick={openAddModal}>+ Tambah Santri</Button>
       </div>
@@ -160,9 +169,10 @@ export default function DataSantriPage() {
       {/* FILTER */}
       <div className="bg-white dark:bg-pondok-950 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          
           <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenis Kelamin</label>
-            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-40 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-36 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
               <option value="Semua">Semua</option>
               <option value="RG">RG (Laki-laki)</option>
               <option value="UG">UG (Perempuan)</option>
@@ -171,7 +181,7 @@ export default function DataSantriPage() {
           
           <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenjang</label>
-            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-40 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-36 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
               <option value="Semua">Semua Jenjang</option>
               <option value="SMA">SMA</option>
               <option value="MTs">MTs</option>
@@ -180,7 +190,7 @@ export default function DataSantriPage() {
 
           <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</label>
-            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full sm:w-40 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
+            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full sm:w-36 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
               <option value="Semua">Semua Kelas</option>
               {filterKategori !== "Semua" && filterJenjang !== "Semua" &&
                 KELAS_MAP[filterKategori as "RG"|"UG"][filterJenjang as "SMA"|"MTs"].map(kls => (
@@ -189,6 +199,16 @@ export default function DataSantriPage() {
               }
             </select>
           </div>
+
+          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status Asrama</label>
+            <select value={filterStatusAsrama} onChange={(e) => setFilterStatusAsrama(e.target.value)} className="w-full sm:w-44 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+              <option value="Semua">Semua Status</option>
+              <option value="Belum">Belum Masuk Asrama</option>
+              <option value="Sudah">Sudah Ada Asrama</option>
+            </select>
+          </div>
+
         </div>
         
         <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center min-w-35 shadow-sm">
@@ -205,8 +225,8 @@ export default function DataSantriPage() {
               <th className="p-4 font-medium">NIS</th>
               <th className="p-4 font-medium">Nama Santri</th>
               <th className="p-4 font-medium">Jenis Kelamin</th>
-              <th className="p-4 font-medium">Jenjang</th>
               <th className="p-4 font-medium">Kelas</th>
+              <th className="p-4 font-medium">Asrama (Kamar)</th>
               <th className="p-4 font-medium text-center">Aksi</th>
             </tr>
           </thead>
@@ -225,17 +245,32 @@ export default function DataSantriPage() {
             ) : (
               filteredSantri.map((santri, index) => (
                 <tr key={santri.id} className="border-b border-gray-50 dark:border-pondok-900/50 hover:bg-gray-50 dark:hover:bg-pondok-900/20">
-                  {/* ... KODE ISI TABEL (TD) TETAP SAMA SEPERTI SEBELUMNYA ... */}
                   <td className="p-4 text-gray-800 dark:text-gray-200">{index + 1}</td>
                   <td className="p-4 text-gray-800 dark:text-gray-200 font-mono">{santri.nis}</td>
                   <td className="p-4 text-gray-800 dark:text-gray-200 font-medium">{santri.nama_santri}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${santri.kategori_asrama === 'RG' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                      {santri.kategori_asrama === 'RG' ? 'RG (Laki-laki)' : 'UG (Perempuan)'}
+                      {santri.kategori_asrama === 'RG' ? 'RG' : 'UG'}
                     </span>
                   </td>
-                  <td className="p-4 text-gray-800 dark:text-gray-200">{santri.jenjang}</td>
                   <td className="p-4 text-gray-800 dark:text-gray-200 font-bold">{santri.kelas}</td>
+                  
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      {santri.nama_asrama ? (
+                        <span className="text-gray-800 dark:text-gray-200 font-medium text-sm">{santri.nama_asrama}</span>
+                      ) : (
+                        <span className="text-red-500 text-xs font-semibold italic bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md">Belum Asrama</span>
+                      )}
+                      <button 
+                        onClick={() => openAssignModal(santri)}
+                        className="text-xs text-pondok-600 hover:text-pondok-800 dark:text-pondok-400 dark:hover:text-pondok-300 font-semibold underline decoration-dotted underline-offset-2 transition-colors"
+                      >
+                        {santri.nama_asrama ? "Ubah" : "+ Pilih"}
+                      </button>
+                    </div>
+                  </td>
+
                   <td className="p-4 flex justify-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditModal(santri)}>Edit</Button>
                     <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => openDeleteModal(santri.id, santri.nama_santri)}>Hapus</Button>
@@ -246,6 +281,41 @@ export default function DataSantriPage() {
           </tbody>
         </table>
       </div>
+
+      {/* MODAL ATUR ASRAMA */}
+      {isAssignOpen && selectedSantri && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-pondok-950 w-full max-w-sm rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-pondok-900">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-pondok-900">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">Penempatan Asrama</h3>
+              <button onClick={() => setIsAssignOpen(false)} className="text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
+            </div>
+            <form onSubmit={handleSetAsrama} className="p-5 space-y-4">
+              <input type="hidden" name="id" value={selectedSantri.id} />
+              
+              <div className="bg-gray-50 dark:bg-[#02180b] p-3 rounded-lg border border-gray-100 dark:border-pondok-900 mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Nama Santri</p>
+                <p className="font-bold text-gray-900 dark:text-white">{selectedSantri.nama_santri}</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pilih Kamar / Asrama</label>
+                <select name="asramaId" defaultValue={selectedSantri.asrama_id || ""} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                  <option value="">-- Kosongkan (Keluarkan dari Asrama) --</option>
+                  {asramaList.map(asrama => (
+                    <option key={asrama.id} value={asrama.id}>{asrama.nama_asrama}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsAssignOpen(false)}>Batal</Button>
+                <Button type="submit" isLoading={isLoading}>Simpan</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL TAMBAH SANTRI */}
       {isAddOpen && (

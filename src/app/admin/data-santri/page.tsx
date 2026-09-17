@@ -1,0 +1,369 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { getDaftarSantri, tambahSantri, editSantri, hapusSantri } from "./actions";
+
+type Santri = { id: string; nis: string; nama_santri: string; kategori_asrama: string; jenjang: string; kelas: string };
+
+const KELAS_MAP = {
+  RG: {
+    SMA: ["10A", "11A", "12A"],
+    MTs: ["7A", "7B", "8A", "8B", "9A", "9B"]
+  },
+  UG: {
+    SMA: ["10B", "11B", "12B"],
+    MTs: ["7C", "7D", "8C", "8D", "9C", "9D"]
+  }
+};
+
+export default function DataSantriPage() {
+  const [santriList, setSantriList] = useState<Santri[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  
+  // State untuk Notifikasi Melayang (Toast)
+  const [notif, setNotif] = useState({ tipe: "", teks: "", tampil: false });
+  
+  // State Filter
+  const [filterKategori, setFilterKategori] = useState("Semua");
+  const [filterJenjang, setFilterJenjang] = useState("Semua");
+  const [filterKelas, setFilterKelas] = useState("Semua");
+
+  // State Form Modal Tambah/Edit
+  const [formKategori, setFormKategori] = useState<"RG" | "UG">("RG");
+  const [formJenjang, setFormJenjang] = useState<"SMA" | "MTs">("MTs");
+
+  // State Pembuka Modal
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false); // Modal Hapus
+  
+  const [selectedSantri, setSelectedSantri] = useState<Santri | null>(null);
+  const [santriToDelete, setSantriToDelete] = useState<{ id: string; nama: string } | null>(null);
+
+  const fetchSantri = async () => {
+    setIsFetching(true); // Mulai loading
+    const res = await getDaftarSantri();
+    if (res.data) setSantriList(res.data);
+    setIsFetching(false); // Selesai loading
+  };
+
+  useEffect(() => { fetchSantri(); }, []);
+
+  const tampilkanNotif = (tipe: "sukses" | "error", teks: string) => {
+    setNotif({ tipe, teks, tampil: true });
+    setTimeout(() => setNotif((prev) => ({ ...prev, tampil: false })), 3000);
+  };
+
+  const filteredSantri = useMemo(() => {
+    return santriList.filter(santri => {
+      const matchKategori = filterKategori === "Semua" || santri.kategori_asrama === filterKategori;
+      const matchJenjang = filterJenjang === "Semua" || santri.jenjang === filterJenjang;
+      const matchKelas = filterKelas === "Semua" || santri.kelas === filterKelas;
+      return matchKategori && matchJenjang && matchKelas;
+    });
+  }, [santriList, filterKategori, filterJenjang, filterKelas]);
+
+  const openAddModal = () => {
+    setFormKategori("RG");
+    setFormJenjang("MTs");
+    setIsAddOpen(true);
+  };
+
+  const openEditModal = (santri: Santri) => {
+    setFormKategori((santri.kategori_asrama as "RG" | "UG") || "RG");
+    setFormJenjang((santri.jenjang as "SMA" | "MTs") || "MTs");
+    setSelectedSantri(santri);
+    setIsEditOpen(true);
+  };
+
+  // Fungsi Pemicu Modal Hapus
+  const openDeleteModal = (id: string, nama: string) => {
+    setSantriToDelete({ id, nama });
+    setIsDeleteOpen(true);
+  };
+
+  const handleTambah = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const result = await tambahSantri(new FormData(e.currentTarget));
+    
+    if (result.error) {
+      tampilkanNotif("error", result.error);
+    } else {
+      setIsAddOpen(false);
+      fetchSantri();
+      tampilkanNotif("sukses", "Data santri berhasil ditambahkan!");
+    }
+    setIsLoading(false);
+  };
+
+  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const result = await editSantri(new FormData(e.currentTarget));
+    
+    if (result.error) {
+      tampilkanNotif("error", result.error);
+    } else {
+      setIsEditOpen(false);
+      fetchSantri();
+      tampilkanNotif("sukses", "Data santri berhasil diperbarui!");
+    }
+    setIsLoading(false);
+  };
+
+  // Fungsi Eksekusi Hapus dari dalam Modal
+  const executeDelete = async () => {
+    if (!santriToDelete) return;
+    setIsLoading(true);
+    
+    const result = await hapusSantri(santriToDelete.id);
+    if (result.error) {
+      tampilkanNotif("error", "Gagal menghapus: " + result.error);
+    } else {
+      fetchSantri();
+      tampilkanNotif("sukses", `Santri ${santriToDelete.nama} berhasil dihapus!`);
+    }
+    
+    setIsDeleteOpen(false);
+    setSantriToDelete(null);
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl w-full relative">
+      
+      {/* KOTAK NOTIFIKASI MELAYANG */}
+      {notif.tampil && (
+        <div className={`fixed top-5 right-5 z-100 px-5 py-3 rounded-xl shadow-lg border transition-all duration-300 flex items-center gap-3 ${
+          notif.tipe === "sukses" 
+            ? "bg-green-50 border-green-200 text-green-700 dark:bg-pondok-950 dark:border-green-800 dark:text-green-400" 
+            : "bg-red-50 border-red-200 text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-400"
+        }`}>
+          <span className="font-medium text-sm">{notif.teks}</span>
+          <button onClick={() => setNotif(prev => ({...prev, tampil: false}))} className="text-xl font-bold opacity-70 hover:opacity-100">&times;</button>
+        </div>
+      )}
+
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Data Santri</h1>
+          <p className="text-sm text-gray-500">Kelola master data santri berdasarkan jenis kelamin dan kelas.</p>
+        </div>
+        <Button onClick={openAddModal}>+ Tambah Santri</Button>
+      </div>
+
+      {/* FILTER */}
+      <div className="bg-white dark:bg-pondok-950 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 flex flex-col md:flex-row md:items-end justify-between gap-5">
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenis Kelamin</label>
+            <select value={filterKategori} onChange={(e) => { setFilterKategori(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-40 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+              <option value="Semua">Semua</option>
+              <option value="RG">RG (Laki-laki)</option>
+              <option value="UG">UG (Perempuan)</option>
+            </select>
+          </div>
+          
+          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jenjang</label>
+            <select value={filterJenjang} onChange={(e) => { setFilterJenjang(e.target.value); setFilterKelas("Semua"); }} className="w-full sm:w-40 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer">
+              <option value="Semua">Semua Jenjang</option>
+              <option value="SMA">SMA</option>
+              <option value="MTs">MTs</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
+            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</label>
+            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full sm:w-40 px-3 py-2 bg-gray-50 dark:bg-[#02180b] border border-gray-200 dark:border-pondok-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pondok-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" disabled={filterKategori === "Semua" || filterJenjang === "Semua"}>
+              <option value="Semua">Semua Kelas</option>
+              {filterKategori !== "Semua" && filterJenjang !== "Semua" &&
+                KELAS_MAP[filterKategori as "RG"|"UG"][filterJenjang as "SMA"|"MTs"].map(kls => (
+                  <option key={kls} value={kls}>{kls}</option>
+                ))
+              }
+            </select>
+          </div>
+        </div>
+        
+        <div className="bg-pondok-50 dark:bg-pondok-900/40 px-5 py-2.5 rounded-lg border border-pondok-100 dark:border-pondok-800 flex items-center justify-center min-w-35 shadow-sm">
+          <span className="text-sm font-bold text-pondok-700 dark:text-pondok-300">Total: {filteredSantri.length} Santri</span>
+        </div>
+      </div>
+
+      {/* TABEL DATA */}
+      <div className="bg-white dark:bg-pondok-950 rounded-xl shadow-sm border border-gray-100 dark:border-pondok-900 w-full overflow-x-auto">
+        <table className="w-full text-left border-collapse whitespace-nowrap">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-[#02180b] border-b border-gray-100 dark:border-pondok-900 text-gray-600 dark:text-gray-300">
+              <th className="p-4 font-medium w-16">No</th>
+              <th className="p-4 font-medium">NIS</th>
+              <th className="p-4 font-medium">Nama Santri</th>
+              <th className="p-4 font-medium">Jenis Kelamin</th>
+              <th className="p-4 font-medium">Jenjang</th>
+              <th className="p-4 font-medium">Kelas</th>
+              <th className="p-4 font-medium text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isFetching ? (
+              <tr>
+                <td colSpan={7} className="p-10 text-center text-gray-500">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="w-7 h-7 border-4 border-pondok-200 border-t-pondok-600 rounded-full animate-spin"></div>
+                    <span className="font-medium">Memuat data...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredSantri.length === 0 ? (
+              <tr><td colSpan={7} className="p-4 text-center text-gray-500">Tidak ada santri yang sesuai.</td></tr>
+            ) : (
+              filteredSantri.map((santri, index) => (
+                <tr key={santri.id} className="border-b border-gray-50 dark:border-pondok-900/50 hover:bg-gray-50 dark:hover:bg-pondok-900/20">
+                  {/* ... KODE ISI TABEL (TD) TETAP SAMA SEPERTI SEBELUMNYA ... */}
+                  <td className="p-4 text-gray-800 dark:text-gray-200">{index + 1}</td>
+                  <td className="p-4 text-gray-800 dark:text-gray-200 font-mono">{santri.nis}</td>
+                  <td className="p-4 text-gray-800 dark:text-gray-200 font-medium">{santri.nama_santri}</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 text-xs rounded-full ${santri.kategori_asrama === 'RG' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                      {santri.kategori_asrama === 'RG' ? 'RG (Laki-laki)' : 'UG (Perempuan)'}
+                    </span>
+                  </td>
+                  <td className="p-4 text-gray-800 dark:text-gray-200">{santri.jenjang}</td>
+                  <td className="p-4 text-gray-800 dark:text-gray-200 font-bold">{santri.kelas}</td>
+                  <td className="p-4 flex justify-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(santri)}>Edit</Button>
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => openDeleteModal(santri.id, santri.nama_santri)}>Hapus</Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* MODAL TAMBAH SANTRI */}
+      {isAddOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-pondok-950 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-pondok-900">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-pondok-900">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">Tambah Data Santri</h3>
+              <button onClick={() => setIsAddOpen(false)} className="text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
+            </div>
+            <form onSubmit={handleTambah} className="p-5 space-y-4">
+              <Input name="nis" label="Nomor Induk Santri (NIS)" required />
+              <Input name="namaSantri" label="Nama Lengkap" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenis Kelamin</label>
+                  <select name="kategoriAsrama" value={formKategori} onChange={(e) => setFormKategori(e.target.value as "RG"|"UG")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                    <option value="RG">RG (Laki-laki)</option>
+                    <option value="UG">UG (Perempuan)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenjang</label>
+                  <select name="jenjang" value={formJenjang} onChange={(e) => setFormJenjang(e.target.value as "SMA"|"MTs")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                    <option value="SMA">SMA</option>
+                    <option value="MTs">MTs</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Kelas</label>
+                <select name="kelas" required className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                  {KELAS_MAP[formKategori][formJenjang].map(kls => (<option key={kls} value={kls}>{kls}</option>))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
+                <Button type="submit" isLoading={isLoading}>Simpan Data</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT SANTRI */}
+      {isEditOpen && selectedSantri && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-pondok-950 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-pondok-900">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-pondok-900">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">Edit Data Santri</h3>
+              <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
+            </div>
+            <form onSubmit={handleEdit} className="p-5 space-y-4">
+              <input type="hidden" name="id" value={selectedSantri.id} />
+              <Input name="nis" label="Nomor Induk Santri (NIS)" defaultValue={selectedSantri.nis} required />
+              <Input name="namaSantri" label="Nama Lengkap" defaultValue={selectedSantri.nama_santri} required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenis Kelamin</label>
+                  <select name="kategoriAsrama" value={formKategori} onChange={(e) => setFormKategori(e.target.value as "RG"|"UG")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                    <option value="RG">RG (Laki-laki)</option>
+                    <option value="UG">UG (Perempuan)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jenjang</label>
+                  <select name="jenjang" value={formJenjang} onChange={(e) => setFormJenjang(e.target.value as "SMA"|"MTs")} className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                    <option value="SMA">SMA</option>
+                    <option value="MTs">MTs</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Kelas</label>
+                <select name="kelas" defaultValue={selectedSantri.kelas} required className="w-full px-3 py-2 bg-white dark:bg-[#02180b] border border-gray-300 dark:border-pondok-700 rounded-lg focus:ring-2 focus:ring-pondok-500">
+                  {KELAS_MAP[formKategori][formJenjang].map(kls => (<option key={kls} value={kls}>{kls}</option>))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Batal</Button>
+                <Button type="submit" isLoading={isLoading}>Simpan Perubahan</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI HAPUS */}
+      {isDeleteOpen && santriToDelete && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-pondok-950 w-full max-w-sm rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-pondok-900 text-center">
+            
+            <div className="p-6 space-y-4">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </div>
+              <h3 className="font-bold text-xl text-gray-900 dark:text-white">Konfirmasi Hapus</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Apakah Anda yakin ingin menghapus data santri <span className="font-bold text-gray-900 dark:text-white">"{santriToDelete.nama}"</span>? Data yang sudah dihapus tidak dapat dikembalikan.
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-[#02180b] px-6 py-4 flex justify-center gap-3 border-t border-gray-100 dark:border-pondok-900">
+              <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Batal</Button>
+              <button 
+                onClick={executeDelete} 
+                disabled={isLoading}
+                className="px-5 py-2 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors focus:ring-2 focus:ring-red-500 focus:outline-none disabled:opacity-50"
+              >
+                {isLoading ? "Menghapus..." : "Ya, Hapus Data"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

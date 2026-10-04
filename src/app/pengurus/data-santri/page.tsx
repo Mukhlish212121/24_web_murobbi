@@ -7,7 +7,7 @@ import SantriBinaanClient from "./SantriBinaanClient";
 export default async function DataSantriBinaanPage() {
   const cookieStore = await cookies();
 
-  // 1. Klien untuk mengecek Sesi User (Auth)
+  // 1. Klien untuk Auth (Mengecek siapa yang login)
   const supabaseAuth = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -25,32 +25,44 @@ export default async function DataSantriBinaanPage() {
     redirect("/login");
   }
 
-  // 2. Klien Admin (Service Role) untuk bypass RLS dan mengakses View
+  // 2. Klien Admin (Service Role) untuk bypass RLS saat fetching data
   const supabaseAdmin = createSupabaseAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // 3. Tarik data langsung dari VIEW SQL
+  // 3. Cari Asrama yang dikelola oleh Murobbi (user) ini
+  const { data: dataAsrama } = await supabaseAdmin
+    .from("asrama")
+    .select("id, nama_asrama")
+    .eq("pengurus_id", user.id)
+    .single();
+
+  // Jika pengurus belum ditugaskan ke asrama mana pun, kembalikan tabel kosong
+  if (!dataAsrama) {
+    return <SantriBinaanClient initialSantri={[]} />;
+  }
+
+  // 4. Ambil semua santri yang berada di asrama tersebut dari tabel 'santri'
   const { data: santriBinaan, error } = await supabaseAdmin
-    .from("view_rekap_asrama")
+    .from("santri")
     .select("*")
-    .eq("pengurus_id", user.id) // Filter khusus asrama yang dipegang pengurus ini
+    .eq("asrama_id", dataAsrama.id)
     .order("nama_santri", { ascending: true });
 
   if (error) {
-    console.error("Gagal mengambil data dari view_rekap_asrama:", error.message);
+    console.error("Gagal mengambil data santri binaan:", error.message);
   }
 
-  // 4. Sesuaikan format data dengan yang dibutuhkan oleh Client Component
-  const formattedData = (santriBinaan || []).map((item: any) => ({
-    id: item.santri_id, // Perhatikan: di view namanya santri_id
-    nis: item.nis,
-    nama_santri: item.nama_santri,
-    kategori_asrama: item.kategori_asrama,
-    jenjang: item.jenjang,
-    kelas: item.kelas,
-    nama_asrama: item.nama_asrama,
+  // 5. Sesuaikan format data dengan yang dibutuhkan oleh Client Component
+  const formattedData = (santriBinaan || []).map((santri) => ({
+    id: santri.id,
+    nis: santri.nis,
+    nama_santri: santri.nama_santri,
+    kategori_asrama: santri.kategori_asrama,
+    jenjang: santri.jenjang,
+    kelas: santri.kelas,
+    nama_asrama: dataAsrama.nama_asrama, // Langsung tempelkan nama asrama dari query pertama
   }));
 
   return (

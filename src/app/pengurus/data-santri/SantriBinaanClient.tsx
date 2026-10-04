@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useMemo } from "react";
-
 type SantriBinaan = { 
   id: string; 
   nis: string; 
@@ -12,25 +10,8 @@ type SantriBinaan = {
   nama_asrama: string;
 };
 
-const KELAS_MAP = {
-  RG: { SMA: ["10A", "11A", "12A"], MTs: ["7A", "7B", "8A", "8B", "9A", "9B"] },
-  UG: { SMA: ["10B", "11B", "12B"], MTs: ["7C", "7D", "8C", "8D", "9C", "9D"] }
-};
-
 export default function SantriBinaanClient({ initialSantri }: { initialSantri: SantriBinaan[] }) {
-  const [filterKategori, setFilterKategori] = useState("Semua");
-  const [filterJenjang, setFilterJenjang] = useState("Semua");
-  const [filterKelas, setFilterKelas] = useState("Semua");
-
-  const filteredSantri = useMemo(() => {
-    return initialSantri.filter(santri => {
-      const matchKategori = filterKategori === "Semua" || santri.kategori_asrama === filterKategori;
-      const matchJenjang = filterJenjang === "Semua" || santri.jenjang === filterJenjang;
-      const matchKelas = filterKelas === "Semua" || santri.kelas === filterKelas;
-      return matchKategori && matchJenjang && matchKelas;
-    });
-  }, [initialSantri, filterKategori, filterJenjang, filterKelas]);
-
+  
   // Ekstrak nama asrama (Karena 1 pengurus biasanya memegang 1 asrama)
   const namaAsramaPengurus = initialSantri.length > 0 ? initialSantri[0].nama_asrama : "Asrama Anda";
 
@@ -40,7 +21,7 @@ export default function SantriBinaanClient({ initialSantri }: { initialSantri: S
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Santri Binaan</h1>
           <p className="text-sm text-gray-500">
-            Daftar santri yang ditempatkan di <span className="font-bold text-pondok-600 dark:text-pondok-400">{namaAsramaPengurus}</span>, dengan total <span className="font-bold text-pondok-600 dark:text-pondok-400">{filteredSantri.length} santri</span> .
+            Daftar santri yang ditempatkan di <span className="font-bold text-pondok-600 dark:text-pondok-400">{namaAsramaPengurus}</span>, dengan total <span className="font-bold text-pondok-600 dark:text-pondok-400">{initialSantri.length} santri</span>.
           </p>
         </div>
       </div>
@@ -59,10 +40,10 @@ export default function SantriBinaanClient({ initialSantri }: { initialSantri: S
             </tr>
           </thead>
           <tbody>
-            {filteredSantri.length === 0 ? (
+            {initialSantri.length === 0 ? (
               <tr><td colSpan={6} className="p-8 text-center text-gray-500 dark:text-gray-400">Belum ada data santri yang ditugaskan ke asrama Anda.</td></tr>
             ) : (
-              filteredSantri.map((santri, index) => (
+              initialSantri.map((santri, index) => (
                 <tr key={santri.id} className="border-b border-gray-50 dark:border-pondok-900/50 hover:bg-gray-50 dark:hover:bg-pondok-900/20 transition-colors">
                   <td className="p-4 text-gray-800 dark:text-gray-300">{index + 1}</td>
                   <td className="p-4 text-gray-800 dark:text-gray-300 font-mono text-sm">{santri.nis}</td>
